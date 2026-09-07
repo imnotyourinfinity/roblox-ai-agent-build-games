@@ -5,8 +5,10 @@ Entry point for the Roblox AI agent.
 
 Usage:
     python main.py "a simple obby with 10 levels and a leaderboard"
+    python main.py                     <- no prompt: the AI invents its own idea
 
 Pipeline:
+0. (Optional) Idea - if no prompt is given, the AI invents its own concept
 1. Plan   - break the prompt into an ordered list of build/script tasks
 2. Generate - call the AI for each task's concrete data (parts or Lua)
 3. Build  - assemble everything into a .rbxlx place file
@@ -18,6 +20,8 @@ import sys
 from ai_planner import plan_game, generate_build_task, generate_script_task
 from rbxlx_builder import build_place_xml
 from roblox_publisher import publish_place
+from idea_generator import generate_idea
+from pool_manager import get_next_place
 
 
 def run(prompt: str):
@@ -44,13 +48,15 @@ def run(prompt: str):
     print(f"Building place file with {len(all_parts)} parts and {len(all_scripts)} scripts...")
     xml_content = build_place_xml(all_parts, all_scripts)
 
-    print("Publishing to Roblox...")
-    result = publish_place(xml_content)
+    place = get_next_place()
+    print(f"Publishing to Roblox (universe {place['universe_id']}, place {place['place_id']})...")
+    result = publish_place(xml_content, place["universe_id"], place["place_id"])
     print(f"Done. Published version: {result.get('versionNumber')}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print('Usage: python main.py "your game idea here"')
-        sys.exit(1)
-    run(sys.argv[1])
+    if len(sys.argv) >= 2 and sys.argv[1].strip():
+        run(sys.argv[1])
+    else:
+        print("No prompt given - letting the AI invent its own game idea...")
+        run(generate_idea())

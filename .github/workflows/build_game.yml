@@ -1,18 +1,22 @@
 name: Build and Publish Roblox Game
 
 on:
-  # Trigger manually from the Actions tab, entering a prompt each time.
+  # Trigger manually from the Actions tab. Leave the prompt blank to let
+  # the AI invent its own game idea instead of you specifying one.
   workflow_dispatch:
     inputs:
       prompt:
-        description: "Game idea prompt"
-        required: true
-        default: "a simple obby with 10 levels and a leaderboard"
+        description: "Game idea prompt (leave blank to let the AI decide)"
+        required: false
+        default: ""
 
-  # Uncomment to also run automatically on a schedule (cron is UTC).
-  # Example below runs every Monday at 9am UTC with a default prompt.
+  # Uncomment to also run automatically on a schedule (cron is UTC),
+  # always letting the AI pick its own idea (no input possible on schedule).
   # schedule:
   #   - cron: "0 9 * * 1"
+
+permissions:
+  contents: write   # needed so the workflow can commit idea_history.json / places_pool.json back
 
 jobs:
   build-and-publish:
@@ -33,7 +37,13 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
-          ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
-          ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
         run: |
-          python main.py "${{ github.event.inputs.prompt || 'a simple obby with 10 levels and a leaderboard' }}"
+          python main.py "${{ github.event.inputs.prompt }}"
+
+      - name: Save idea history and pool state
+        run: |
+          git config user.name "roblox-ai-agent"
+          git config user.email "actions@github.com"
+          git add idea_history.json places_pool.json
+          git diff --cached --quiet || git commit -m "Record generated idea and used place [skip ci]"
+          git push
