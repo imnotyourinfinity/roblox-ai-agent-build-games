@@ -6,7 +6,7 @@ straight to a Roblox place — no Studio required.
 
 ## How it works
 
-1. **`ai_planner.py`** — calls Claude to break your prompt into a task list,
+1. **`ai_planner.py`** — calls Gemini (free tier) to break your prompt into a task list,
    then generates the concrete data for each task (parts to build, or Lua
    script source).
 2. **`rbxlx_builder.py`** — assembles that data into a real Roblox place
@@ -30,13 +30,18 @@ straight to a Roblox place — no Studio required.
 - Create an API key with `universe-places:write` permission, scoped to your
   universe.
 
-### 3. Get an Anthropic API key
-- From [console.anthropic.com](https://console.anthropic.com) if you don't
-  already have one.
+### 3. Get a Gemini API key (free tier, used while testing)
+- Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey),
+  sign in, and click "Create API key". Free tier limits apply - fine for
+  testing at low volume. See [ai.google.dev/pricing](https://ai.google.dev/pricing)
+  for current limits.
+- Once the pipeline is reliable and you care more about output quality than
+  cost, you can swap in a different provider (e.g. Claude) - only
+  `ai_planner.py` needs to change.
 
 ### 4. Add secrets to your GitHub repo
 Go to your repo's **Settings > Secrets and variables > Actions** and add:
-- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
 - `ROBLOX_API_KEY`
 - `ROBLOX_UNIVERSE_ID`
 - `ROBLOX_PLACE_ID`
@@ -53,7 +58,7 @@ Go to the repo's **Actions** tab → select "Build and Publish Roblox Game" →
 **Locally (for testing/debugging):**
 ```bash
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...
+export GEMINI_API_KEY=...
 export ROBLOX_API_KEY=...
 export ROBLOX_UNIVERSE_ID=...
 export ROBLOX_PLACE_ID=...

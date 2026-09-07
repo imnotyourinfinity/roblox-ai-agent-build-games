@@ -1,35 +1,38 @@
 """
 ai_planner.py
 
-Talks to the Anthropic API to:
+Talks to the Google Gemini API to:
 1. Turn a high-level prompt into a list of build/script tasks (planning step)
 2. Generate the actual data for each task (parts to build, or Lua script source)
 
 All responses are requested as strict JSON so they can be parsed directly
 into the rbxlx builder.
+
+NOTE: This currently uses Gemini's free tier for testing. Once the pipeline
+is reliable end-to-end, consider swapping to a stronger model (e.g. Claude)
+for better game/script quality - only this file needs to change.
 """
 
 import json
 import os
-from anthropic import Anthropic
+import google.generativeai as genai
 
-# Change this to whichever Claude model your API key has access to.
-MODEL = "claude-sonnet-5"
+# Free-tier-friendly model. See ai.google.dev/pricing for current limits.
+MODEL = "gemini-2.5-flash"
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 
 def _call_ai(system_prompt: str, user_prompt: str) -> dict:
-    """Send a prompt to Claude and parse the response as JSON."""
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=4000,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
+    """Send a prompt to Gemini and parse the response as JSON."""
+    model = genai.GenerativeModel(MODEL, system_instruction=system_prompt)
+    response = model.generate_content(
+        user_prompt,
+        generation_config={"response_mime_type": "application/json"},
     )
-    text = "".join(block.text for block in response.content if block.type == "text")
-    # Strip markdown code fences if the model added them despite instructions
-    text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    text = response.text.strip()
+    # Strip markdown code fences just in case
+    text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(text)
 
 
@@ -105,12 +108,7 @@ def fix_script(source: str, error_message: str) -> str:
         "message, output ONLY the corrected Lua source code, no markdown, "
         "no explanation, no JSON wrapper - just the raw fixed code."
     )
-    user_prompt = f"Error: {error_message}\n\nBroken code:\n{source}"
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=4000,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
-    text = "".join(block.text for block in response.content if block.type == "text")
-    return text.strip().removeprefix("```lua").removeprefix("```").removesuffix("```").strip()
+    model = genai.GenerativeModel(MODEL, system_instruction=system_prompt)
+    response = model.generate_content(f"Error: {error_message}\n\nBroken code:\n{source}")
+    text = response.text.strip()
+    return text.removeprefix("```lua").removeprefix("```").removesuffix("```").strip()
