@@ -1,0 +1,39 @@
+name: Build and Publish Roblox Game
+
+on:
+  # Trigger manually from the Actions tab, entering a prompt each time.
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Game idea prompt"
+        required: true
+        default: "a simple obby with 10 levels and a leaderboard"
+
+  # Uncomment to also run automatically on a schedule (cron is UTC).
+  # Example below runs every Monday at 9am UTC with a default prompt.
+  # schedule:
+  #   - cron: "0 9 * * 1"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
+          ROBLOX_PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
+        run: |
+          python main.py "${{ github.event.inputs.prompt || 'a simple obby with 10 levels and a leaderboard' }}"
