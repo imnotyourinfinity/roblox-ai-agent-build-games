@@ -59,7 +59,7 @@ def generate_idea() -> str:
     response = model.generate_content(
         "Invent a new game concept now.",
         generation_config={"response_mime_type": "application/json"},
-        request_options={"timeout": 60},
+        request_options={"timeout": 120},
     )
     text = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     idea = json.loads(text)

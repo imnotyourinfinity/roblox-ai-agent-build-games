@@ -15,26 +15,45 @@ for better game/script quality - only this file needs to change.
 
 import json
 import os
+import time
 import google.generativeai as genai
+from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable, ResourceExhausted
 
 # Free-tier-friendly model. See ai.google.dev/pricing for current limits.
 MODEL = "gemini-3.5-flash-lite"
+REQUEST_TIMEOUT = 120
+MAX_RETRIES = 3
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 
 def _call_ai(system_prompt: str, user_prompt: str) -> dict:
-    """Send a prompt to Gemini and parse the response as JSON."""
+    """Send a prompt to Gemini and parse the response as JSON, retrying on
+    transient timeouts/server errors (but not on quota errors - those need
+    an actual wait, not a fast retry)."""
     model = genai.GenerativeModel(MODEL, system_instruction=system_prompt)
-    response = model.generate_content(
-        user_prompt,
-        generation_config={"response_mime_type": "application/json"},
-        request_options={"timeout": 60},
-    )
-    text = response.text.strip()
-    # Strip markdown code fences just in case
-    text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    return json.loads(text)
+
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = model.generate_content(
+                user_prompt,
+                generation_config={"response_mime_type": "application/json"},
+                request_options={"timeout": REQUEST_TIMEOUT},
+            )
+            text = response.text.strip()
+            text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            return json.loads(text)
+        except (DeadlineExceeded, ServiceUnavailable) as e:
+            last_error = e
+            wait = 10 * attempt
+            print(f"  Attempt {attempt}/{MAX_RETRIES} timed out, retrying in {wait}s...")
+            time.sleep(wait)
+        except ResourceExhausted:
+            # Quota errors won't fix themselves with a quick retry - fail fast
+            raise
+
+    raise last_error
 
 
 def plan_game(prompt: str) -> list:
@@ -127,7 +146,7 @@ def fix_script(source: str, error_message: str) -> str:
     model = genai.GenerativeModel(MODEL, system_instruction=system_prompt)
     response = model.generate_content(
         f"Error: {error_message}\n\nBroken code:\n{source}",
-        request_options={"timeout": 60},
+        request_options={"timeout": REQUEST_TIMEOUT},
     )
     text = response.text.strip()
     return text.removeprefix("```lua").removeprefix("```").removesuffix("```").strip()
