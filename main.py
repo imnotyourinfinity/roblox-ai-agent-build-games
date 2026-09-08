@@ -43,6 +43,10 @@ def run(prompt: str):
     print(f"Building place file with {len(all_parts)} parts and {len(all_scripts)} scripts...")
     xml_content = build_place_xml(all_parts, all_scripts)
 
+    with open("generated_place.rbxlx", "w", encoding="utf-8") as f:
+        f.write(xml_content)
+    print("Saved generated_place.rbxlx for inspection.")
+
     place = get_next_place()
     print(f"Publishing to Roblox (universe {place['universe_id']}, place {place['place_id']})...")
     result = publish_place(xml_content, place["universe_id"], place["place_id"])

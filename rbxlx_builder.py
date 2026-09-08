@@ -16,7 +16,25 @@ and adjust the templates below accordingly.
 """
 
 import itertools
+import re
 import xml.sax.saxutils as sx
+
+# Characters not valid in XML 1.0 (most control chars except tab/newline/CR).
+_INVALID_XML_CHARS = re.compile(
+    "[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x84\x86-\x9f]"
+)
+
+
+def _safe_cdata(text: str) -> str:
+    """
+    Make AI-generated text safe to embed in a CDATA block:
+    - strips characters that aren't valid in XML 1.0 at all
+    - escapes any literal ']]>' sequence, which would otherwise
+      prematurely terminate the CDATA section and corrupt the file
+      (e.g. if the Lua code happens to contain that exact sequence)
+    """
+    text = _INVALID_XML_CHARS.sub("", text or "")
+    return text.replace("]]>", "]]]]><![CDATA[>")
 
 _ref_counter = itertools.count(1)
 
@@ -34,7 +52,7 @@ def _ref() -> str:
 
 def _part_xml(part: dict) -> str:
     ref = _ref()
-    name = sx.escape(part.get("name", "Part"))
+    name = sx.escape(_INVALID_XML_CHARS.sub("", part.get("name", "Part")))
     size = part.get("size", [4, 4, 4])
     pos = part.get("position", [0, 0, 0])
     color = part.get("color", [163, 162, 165])
@@ -65,9 +83,9 @@ def _part_xml(part: dict) -> str:
 
 def _script_xml(script: dict) -> str:
     ref = _ref()
-    name = sx.escape(script.get("name", "Script"))
+    name = sx.escape(_INVALID_XML_CHARS.sub("", script.get("name", "Script")))
     script_class = script.get("script_type", "Script")
-    source = script.get("source", "")
+    source = _safe_cdata(script.get("source", ""))
 
     return f"""
     <Item class="{script_class}" referent="{ref}">

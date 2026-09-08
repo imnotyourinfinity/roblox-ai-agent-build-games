@@ -41,6 +41,14 @@ jobs:
         run: |
           python main.py "${{ github.event.inputs.prompt }}"
 
+      - name: Upload generated place file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-place
+          path: generated_place.rbxlx
+          if-no-files-found: ignore
+
       - name: Save idea history and pool state
         run: |
           git config user.name "roblox-ai-agent"
