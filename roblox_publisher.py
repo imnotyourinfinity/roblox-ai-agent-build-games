@@ -39,5 +39,7 @@ def publish_place(xml_content: str, universe_id: str, place_id: str) -> dict:
         data=xml_content.encode("utf-8"),
         timeout=60,
     )
+    if not response.ok:
+        print(f"Roblox API error {response.status_code}: {response.text}")
     response.raise_for_status()
     return response.json()
