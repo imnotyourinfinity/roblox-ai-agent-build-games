@@ -10,7 +10,7 @@ import json
 import os
 import google.generativeai as genai
 
-MODEL = "gemini-3.6-flash"
+MODEL = "gemini-3.5-flash-lite"
 HISTORY_FILE = "idea_history.json"
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
@@ -59,6 +59,7 @@ def generate_idea() -> str:
     response = model.generate_content(
         "Invent a new game concept now.",
         generation_config={"response_mime_type": "application/json"},
+        request_options={"timeout": 60},
     )
     text = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     idea = json.loads(text)
