@@ -17,7 +17,7 @@ Pipeline:
 
 import sys
 
-from ai_planner import plan_game, generate_build_task, generate_script_task
+from ai_planner import plan_game, generate_all_builds, generate_all_scripts
 from rbxlx_builder import build_place_xml
 from roblox_publisher import publish_place
 from idea_generator import generate_idea
@@ -31,19 +31,14 @@ def run(prompt: str):
     for t in tasks:
         print(f"  - [{t['type']}] {t['name']}")
 
-    all_parts = []
-    all_scripts = []
+    build_tasks = [t for t in tasks if t["type"] == "build"]
+    script_tasks = [t for t in tasks if t["type"] == "script"]
 
-    for task in tasks:
-        print(f"Generating: {task['name']} ({task['type']})")
-        if task["type"] == "build":
-            parts = generate_build_task(task, prompt)
-            all_parts.extend(parts)
-        elif task["type"] == "script":
-            script = generate_script_task(task, prompt)
-            all_scripts.append(script)
-        else:
-            print(f"  Unknown task type '{task['type']}', skipping.")
+    print(f"Generating {len(build_tasks)} build task(s) in one call...")
+    all_parts = generate_all_builds(build_tasks, prompt)
+
+    print(f"Generating {len(script_tasks)} script task(s) in one call...")
+    all_scripts = generate_all_scripts(script_tasks, prompt)
 
     print(f"Building place file with {len(all_parts)} parts and {len(all_scripts)} scripts...")
     xml_content = build_place_xml(all_parts, all_scripts)

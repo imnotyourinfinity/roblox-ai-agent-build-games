@@ -29,6 +29,7 @@ def _call_ai(system_prompt: str, user_prompt: str) -> dict:
     response = model.generate_content(
         user_prompt,
         generation_config={"response_mime_type": "application/json"},
+        request_options={"timeout": 60},
     )
     text = response.text.strip()
     # Strip markdown code fences just in case
@@ -56,46 +57,61 @@ def plan_game(prompt: str) -> list:
     return result["tasks"]
 
 
-def generate_build_task(task: dict, prompt: str) -> list:
+def generate_all_builds(build_tasks: list, prompt: str) -> list:
     """
-    Generate concrete part data for a 'build' task.
-    Returns a list of part dicts: name, shape, size, position, color, material, anchored.
+    Generate concrete part data for ALL 'build' tasks in a single AI call
+    (instead of one call per task) to conserve free-tier request quota.
+    Returns a flat list of part dicts.
     """
+    if not build_tasks:
+        return []
+
     system_prompt = (
-        "You are a Roblox level builder. Given a build task, output the exact "
-        "parts needed as JSON, no markdown, no explanation. "
+        "You are a Roblox level builder. Given a list of build tasks, output "
+        "the exact parts needed for ALL of them combined, as JSON, no "
+        "markdown, no explanation. "
         'Format: {"parts": [{"name": "...", "shape": "Block|Ball|Cylinder", '
         '"size": [x,y,z], "position": [x,y,z], '
         '"color": [r,g,b] (0-255 each), "material": "Plastic|Wood|Metal|...", '
         '"anchored": true}]}. '
-        "Keep coordinates reasonable (within a few hundred studs of the origin) "
-        "and make sure pieces for the same task don't overlap incorrectly."
+        "Keep coordinates reasonable (within a few hundred studs of the "
+        "origin) and make sure parts across different tasks don't overlap "
+        "incorrectly with each other."
     )
-    user_prompt = (
-        f"Overall game: {prompt}\n"
-        f"Task: {task['name']} - {task['description']}"
+    task_list_text = "\n".join(
+        f"- {t['name']}: {t['description']}" for t in build_tasks
     )
+    user_prompt = f"Overall game: {prompt}\n\nBuild tasks:\n{task_list_text}"
+
     result = _call_ai(system_prompt, user_prompt)
     return result["parts"]
 
 
-def generate_script_task(task: dict, prompt: str) -> dict:
+def generate_all_scripts(script_tasks: list, prompt: str) -> list:
     """
-    Generate a Lua script for a 'script' task.
-    Returns dict: name, parent, script_type (Script|LocalScript), source.
+    Generate Lua scripts for ALL 'script' tasks in a single AI call
+    (instead of one call per task) to conserve free-tier request quota.
+    Returns a list of script dicts: name, parent, script_type, source.
     """
+    if not script_tasks:
+        return []
+
     system_prompt = (
-        "You are a Roblox Lua scripter. Given a script task, output the script "
-        "as JSON, no markdown, no explanation. "
-        'Format: {"name": "...", "parent": "ServerScriptService|Workspace|...", '
-        '"script_type": "Script|LocalScript", "source": "-- lua code here"}. '
-        "Write working, idiomatic Roblox Lua. Escape newlines properly in the JSON string."
+        "You are a Roblox Lua scripter. Given a list of script tasks, output "
+        "ALL of the needed scripts as JSON, no markdown, no explanation. "
+        'Format: {"scripts": [{"name": "...", '
+        '"parent": "ServerScriptService|Workspace|...", '
+        '"script_type": "Script|LocalScript", "source": "-- lua code here"}]}. '
+        "Write working, idiomatic Roblox Lua, one entry per task. "
+        "Escape newlines properly in the JSON strings."
     )
-    user_prompt = (
-        f"Overall game: {prompt}\n"
-        f"Task: {task['name']} - {task['description']}"
+    task_list_text = "\n".join(
+        f"- {t['name']}: {t['description']}" for t in script_tasks
     )
-    return _call_ai(system_prompt, user_prompt)
+    user_prompt = f"Overall game: {prompt}\n\nScript tasks:\n{task_list_text}"
+
+    result = _call_ai(system_prompt, user_prompt)
+    return result["scripts"]
 
 
 def fix_script(source: str, error_message: str) -> str:
@@ -109,6 +125,9 @@ def fix_script(source: str, error_message: str) -> str:
         "no explanation, no JSON wrapper - just the raw fixed code."
     )
     model = genai.GenerativeModel(MODEL, system_instruction=system_prompt)
-    response = model.generate_content(f"Error: {error_message}\n\nBroken code:\n{source}")
+    response = model.generate_content(
+        f"Error: {error_message}\n\nBroken code:\n{source}",
+        request_options={"timeout": 60},
+    )
     text = response.text.strip()
     return text.removeprefix("```lua").removeprefix("```").removesuffix("```").strip()
