@@ -18,7 +18,7 @@ import os
 import google.generativeai as genai
 
 # Free-tier-friendly model. See ai.google.dev/pricing for current limits.
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 

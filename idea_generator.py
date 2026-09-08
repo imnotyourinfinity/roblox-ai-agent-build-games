@@ -10,7 +10,7 @@ import json
 import os
 import google.generativeai as genai
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 HISTORY_FILE = "idea_history.json"
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
