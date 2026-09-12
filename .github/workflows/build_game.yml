@@ -53,6 +53,7 @@ jobs:
         run: |
           git config user.name "roblox-ai-agent"
           git config user.email "actions@github.com"
-          git add idea_history.json places_pool.json
+          [ -f idea_history.json ] && git add idea_history.json
+          [ -f places_pool.json ] && git add places_pool.json
           git diff --cached --quiet || git commit -m "Record generated idea and used place [skip ci]"
           git push
