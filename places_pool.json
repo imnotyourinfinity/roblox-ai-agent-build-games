@@ -1,7 +1,32 @@
 [
-  {"label": "slot-1", "universe_id": "10765620910", "place_id": "103623520940675", "used": false},
-  {"label": "slot-2", "universe_id": "10765621409", "place_id": "103648318069877", "used": false},
-  {"label": "slot-3", "universe_id": "10765621668", "place_id": "134547081056608", "used": false},
-  {"label": "slot-4", "universe_id": "10765621763", "place_id": "89948431250393", "used": false},
-  {"label": "slot-5", "universe_id": "10765621825", "place_id": "89874165961175", "used": false}
+  {
+    "label": "slot-1",
+    "universe_id": "10765620910",
+    "place_id": "103623520940675",
+    "used": true
+  },
+  {
+    "label": "slot-2",
+    "universe_id": "10765621409",
+    "place_id": "103648318069877",
+    "used": false
+  },
+  {
+    "label": "slot-3",
+    "universe_id": "10765621668",
+    "place_id": "134547081056608",
+    "used": false
+  },
+  {
+    "label": "slot-4",
+    "universe_id": "10765621763",
+    "place_id": "89948431250393",
+    "used": false
+  },
+  {
+    "label": "slot-5",
+    "universe_id": "10765621825",
+    "place_id": "89874165961175",
+    "used": false
+  }
 ]
